@@ -10,9 +10,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Yaml\Yaml;
 use GuzzleHttp\Client;
+use GuzzleHttp\TransferStats;
 
 class ZoneList extends Command {
 
+  protected $output = NULL;
   protected $start = NULL;
   protected $end = NULL;
   protected $email;
@@ -31,17 +33,37 @@ class ZoneList extends Command {
    *   Decoded JSON body of the API request, if the request was successful.
    */
   protected function apiRequest($endpoint) {
+    $url = '';
+    $time = 0;
     $client = new Client([
       'base_uri' => self::API_BASE,
       'headers' => [
         'X-Auth-Email' => $this->email,
         'X-Auth-Key' => $this->key,
+        'User-Agent' => 'cfcli/1.0',
+        'Accept' => 'application/json',
       ],
+      'query' => [
+        'per_page' => 1000,
+      ],
+      'allow_redirects' => FALSE,
+      'connect_timeout' => 5,
+      'timeout' => 5,
+      'on_stats' => function(TransferStats $stats) use (&$url, &$time) {
+        $url = $stats->getEffectiveUri();
+        $time = $stats->getTransferTime();
+      }
     ]);
     $response = $client->request('GET', $endpoint);
 
     if ($response->getStatusCode() !== 200) {
       throw new \Exception('Error: ' . (string) $response->getBody());
+    }
+
+    // Debug logging.
+    if ($this->output->getVerbosity() >= OutputInterface::VERBOSITY_VERBOSE) {
+      $this->output->writeln('URL: ' . $url);
+      $this->output->writeln('Time: ' . $time . ' seconds');
     }
 
     return json_decode($response->getBody(), TRUE);
@@ -93,8 +115,9 @@ class ZoneList extends Command {
     $this->key = $input->getOption('key');
     $this->organizationFilter = $input->getOption('organization-filter');
     $this->format = $input->getOption('format');
+    $this->output = $output;
 
-    $results = $this->apiRequest('zones?per_page=1000');
+    $results = $this->apiRequest('zones');
 
     $organization_zones = [];
     $counts = [
@@ -131,12 +154,12 @@ class ZoneList extends Command {
       default:
         $yaml = Yaml::dump($variables, 3);
         file_put_contents('./output.yml', $yaml);
-        $output->writeln("<info>YAML file written to ./output.yml.</info>");
+        $this->output->writeln("<info>YAML file written to ./output.yml.</info>");
         break;
     }
 
     $seconds = $this->timerEnd();
-    $output->writeln("<info>Execution time: $seconds seconds</info>");
+    $this->output->writeln("<info>Execution time: $seconds seconds</info>");
   }
 
   protected function timerStart() {
