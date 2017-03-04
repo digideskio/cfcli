@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Yaml\Yaml;
 use GuzzleHttp\Client;
@@ -146,6 +147,10 @@ class ZoneList extends Command {
     $this->wafCheck = $input->getOption('waf');
     $this->output = $output;
 
+    $io = new SymfonyStyle($input, $output);
+    $io->title('Cloudflare zone list report');
+
+    // Get all zone data including pagination.
     $results = $this->getAllZones();
 
     $organization_zones = [];
@@ -160,6 +165,7 @@ class ZoneList extends Command {
     foreach ($results['result'] as $zone) {
       if ($zone['owner']['type'] === 'organization' && preg_match('/' . $this->organizationFilter . '/', $zone['owner']['name'])) {
 
+        // Base zone details.
         $zone_details = [
           'id' => $zone['id'],
           'domain' => $zone['name'],
@@ -193,12 +199,12 @@ class ZoneList extends Command {
       default:
         $yaml = Yaml::dump($variables, 3);
         file_put_contents('./output.yml', $yaml);
-        $this->output->writeln("<info>YAML file written to ./output.yml.</info>");
+        $io->success("YAML file written to ./output.yml.");
         break;
     }
 
     $seconds = $this->timerEnd();
-    $this->output->writeln("<info>Execution time: $seconds seconds</info>");
+    $io->text("Execution time: $seconds seconds.");
   }
 
   protected function timerStart() {
