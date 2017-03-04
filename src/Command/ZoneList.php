@@ -95,7 +95,7 @@ class ZoneList extends Command {
   protected function configure() {
     $this
       ->setName('zone:list')
-      ->setDescription('Audit a Drupal site to ensure it meets best practice')
+      ->setDescription('Lists all zones that you have access to in Cloudflare, optionally filtered by an organization filter.')
       ->addOption(
         'email',
         'e',
