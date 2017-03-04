@@ -21,6 +21,7 @@ class ZoneList extends Command {
   protected $key;
   protected $organizationFilter;
   protected $format;
+  protected $wafCheck = FALSE;
 
   const API_BASE = 'https://api.cloudflare.com/client/v4/';
 
@@ -72,6 +73,8 @@ class ZoneList extends Command {
   /**
    * Load all zones you have access to. Takes care of pagination.
    *
+   * @see https://api.cloudflare.com/#zone-list-zones
+   *
    * @return array
    *   Decoded JSON body of the API request, if the request was successful.
    */
@@ -121,6 +124,12 @@ class ZoneList extends Command {
         'Desired output format.',
         'yaml'
       )
+      ->addOption(
+        'waf',
+        'w',
+        InputOption::VALUE_NONE,
+        'If set, all zones will do an additional API lookup to see if the WAF is enabled or not.'
+      )
     ;
   }
 
@@ -134,6 +143,7 @@ class ZoneList extends Command {
     $this->key = $input->getOption('key');
     $this->organizationFilter = $input->getOption('organization-filter');
     $this->format = $input->getOption('format');
+    $this->wafCheck = $input->getOption('waf');
     $this->output = $output;
 
     $results = $this->getAllZones();
@@ -149,11 +159,21 @@ class ZoneList extends Command {
     ];
     foreach ($results['result'] as $zone) {
       if ($zone['owner']['type'] === 'organization' && preg_match('/' . $this->organizationFilter . '/', $zone['owner']['name'])) {
-        $organization_zones[$zone['owner']['name']][] = [
+
+        $zone_details = [
           'id' => $zone['id'],
           'domain' => $zone['name'],
           'status' => $zone['status'],
         ];
+
+        // Optional WAF check.
+        if ($this->wafCheck) {
+          $waf_enabled = $this->apiRequest("zones/{$zone['id']}/settings/waf")['result']['value'];
+          $zone_details['waf'] = $waf_enabled === 'on';
+        }
+
+        $organization_zones[$zone['owner']['name']][] = $zone_details;
+
         // Increment counts.
         $counts[$zone['status']]++;
       }
