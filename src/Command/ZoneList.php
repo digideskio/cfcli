@@ -70,6 +70,25 @@ class ZoneList extends Command {
   }
 
   /**
+   * Load all zones you have access to. Takes care of pagination.
+   *
+   * @return array
+   *   Decoded JSON body of the API request, if the request was successful.
+   */
+  protected function getAllZones() {
+    $results = $this->apiRequest('zones');
+
+    if ($results['result_info']['total_pages'] > 1) {
+      for ($i = 2 ; $i <= $results['result_info']['total_pages'] ; $i++) {
+        $loop_results = $this->apiRequest('zones?page=' . $i);
+        $results['result'] = array_merge($results['result'], $loop_results['result']);
+      }
+    }
+
+    return $results;
+  }
+
+  /**
    * @inheritdoc
    */
   protected function configure() {
@@ -117,7 +136,7 @@ class ZoneList extends Command {
     $this->format = $input->getOption('format');
     $this->output = $output;
 
-    $results = $this->apiRequest('zones');
+    $results = $this->getAllZones();
 
     $organization_zones = [];
     $counts = [
