@@ -192,11 +192,17 @@ class ZoneList extends Command {
 
     // @TODO implement more output formats.
     switch ($this->format) {
+      case 'json':
+        $json = json_encode($variables, JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+        file_put_contents('./reports/zone-list.json', $json);
+        $io->success("JSON file written to ./reports/zone-list.json");
+        break;
+
       case 'yaml':
       default:
         $yaml = Yaml::dump($variables, 3);
-        file_put_contents('./output.yml', $yaml);
-        $io->success("YAML file written to output.yml");
+        file_put_contents('./reports/zone-list.yml', $yaml);
+        $io->success("YAML file written to ./reports/zone-list.yml");
         break;
     }
 
