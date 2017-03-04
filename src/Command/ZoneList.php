@@ -25,6 +25,7 @@ class ZoneList extends Command {
   protected $wafCheck = FALSE;
 
   const API_BASE = 'https://api.cloudflare.com/client/v4/';
+  const API_PER_PAGE = 1000;
 
   /**
    * Perform an API request to Cloudflare.
@@ -45,9 +46,6 @@ class ZoneList extends Command {
         'User-Agent' => 'cfcli/1.0',
         'Accept' => 'application/json',
       ],
-      'query' => [
-        'per_page' => 1000,
-      ],
       'allow_redirects' => FALSE,
       'connect_timeout' => 5,
       'timeout' => 5,
@@ -63,9 +61,8 @@ class ZoneList extends Command {
     }
 
     // Debug logging.
-    if ($this->output->getVerbosity() >= OutputInterface::VERBOSITY_VERBOSE) {
-      $this->output->writeln('URL: ' . $url);
-      $this->output->writeln('Time: ' . $time . ' seconds');
+    if ($this->output->isVerbose()) {
+      $this->output->writeln(" > Debug: {$url} [{$time} seconds]");
     }
 
     return json_decode($response->getBody(), TRUE);
@@ -80,11 +77,11 @@ class ZoneList extends Command {
    *   Decoded JSON body of the API request, if the request was successful.
    */
   protected function getAllZones() {
-    $results = $this->apiRequest('zones');
+    $results = $this->apiRequest('zones?page=1&per_page=' . self::API_PER_PAGE);
 
     if ($results['result_info']['total_pages'] > 1) {
       for ($i = 2 ; $i <= $results['result_info']['total_pages'] ; $i++) {
-        $loop_results = $this->apiRequest('zones?page=' . $i);
+        $loop_results = $this->apiRequest('zones?page=' . $i . '&per_page=' . self::API_PER_PAGE);
         $results['result'] = array_merge($results['result'], $loop_results['result']);
       }
     }
@@ -199,7 +196,7 @@ class ZoneList extends Command {
       default:
         $yaml = Yaml::dump($variables, 3);
         file_put_contents('./output.yml', $yaml);
-        $io->success("YAML file written to ./output.yml.");
+        $io->success("YAML file written to output.yml");
         break;
     }
 
