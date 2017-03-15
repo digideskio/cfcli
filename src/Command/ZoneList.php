@@ -152,6 +152,7 @@ class ZoneList extends Command {
 
     $organization_zones = [];
     $counts = [
+      'total' => 0,
       'active' => 0,
       'pending' => 0,
       'initializing' => 0,
@@ -179,6 +180,7 @@ class ZoneList extends Command {
 
         // Increment counts.
         $counts[$zone['status']]++;
+        $counts['total']++;
       }
     }
 
@@ -186,6 +188,7 @@ class ZoneList extends Command {
       'meta' => [
         'organization count' => count($organization_zones),
         'zone counts' => $counts,
+        'waf check' => $this->wafCheck,
       ],
       'zones' => $organization_zones,
     ];
@@ -195,19 +198,53 @@ class ZoneList extends Command {
       case 'json':
         $json = json_encode($variables, JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
         file_put_contents('./reports/zone-list.json', $json);
-        $io->success("JSON file written to ./reports/zone-list.json");
+        $io->success('JSON file written to ./reports/zone-list.json');
+        break;
+
+      case 'html':
+        $this->writeHTMLReport($io, $variables, './reports/zone-list.html');
+        $io->success('HTML file written to ./reports/zone-list.html');
         break;
 
       case 'yaml':
       default:
         $yaml = Yaml::dump($variables, 3);
         file_put_contents('./reports/zone-list.yml', $yaml);
-        $io->success("YAML file written to ./reports/zone-list.yml");
+        $io->success('YAML file written to ./reports/zone-list.yml');
         break;
     }
 
     $seconds = $this->timerEnd();
     $io->text("Execution time: $seconds seconds.");
+  }
+
+  /**
+   * Convert the results into HTML.
+   *
+   * @param \Symfony\Component\Console\Style\SymfonyStyle $io
+   *   The output style.
+   * @param array $variables
+   *   Variables to output in the template.
+   * @param string $filepath
+   *   The path to the HTML file.
+   */
+  protected function writeHTMLReport(SymfonyStyle $io, array $variables = [], $filepath) {
+    $loader = new \Twig_Loader_Filesystem(__DIR__ . '/../../templates');
+    $twig = new \Twig_Environment($loader, array(
+      'cache' => sys_get_temp_dir() . '/cache',
+      'auto_reload' => TRUE,
+    ));
+    $template = $twig->load('zonelist.html.twig');
+    $contents = $template->render([
+      'meta' => $variables['meta'],
+      'zones' => $variables['zones'],
+    ]);
+
+    if (is_file($filepath) && !is_writable($filepath)) {
+      throw new \RuntimeException("Cannot overwrite file: $filepath");
+    }
+
+    file_put_contents($filepath, $contents);
   }
 
   protected function timerStart() {

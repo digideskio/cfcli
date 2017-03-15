@@ -1,0 +1,87 @@
+{% include 'includes/header.html.twig' %}
+
+<!-- Main jumbotron for a primary marketing message or call to action -->
+<div class="jumbotron">
+  <div class="container">
+    <h1>Cloudflare zone list report</h1>
+    <p>Report run across <strong>{{ meta['zone counts']['total'] }}</strong> zone{% if meta['zone counts']['total'] | length > 1 %}s{% endif %}, and <strong>{{ meta['organization count'] }}</strong> organisation{% if meta['organization count'] | length > 1 %}s{% endif %}.<br/>
+      {{ 'now' | date('Y-m-d h:i a (T)') }}
+    </p>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Example row of columns -->
+  <div class="row">
+
+    <div class="col-sm-12">
+      <h2>Zones</h2>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Organisation</th>
+            <th>Domain</th>
+            <th>Status</th>
+            {% if meta['waf check'] %}
+              <th>WAF</th>
+            {% endif %}
+            <th>ZoneID</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for org, orgzones in zones %}
+            {% for index, zone in orgzones %}
+              <tr>
+                {% if index == 0 %}
+                  <th rowspan="{{ orgzones | length }}">
+                    {{ org }}<br>
+                    <small>{{ orgzones | length }} zone{% if orgzones | length > 1 %}s{% endif %}</small>
+                  </th>
+                {% endif %}
+                <td>
+                  {{ zone.domain }}
+                </td>
+                {% if zone.status == 'active' %}
+                  {% set class = 'success' %}
+                {% else %}
+                  {% set class = 'warning' %}
+                {% endif %}
+                <td class="{{ class }}">
+                  {{ zone.status }}
+                </td>
+                {% if zone.waf is defined %}
+                  {% if zone.waf %}
+                    {% set class = 'success' %}
+                  {% else %}
+                    {% set class = 'warning' %}
+                  {% endif %}
+                  <td class="{{ class }}">
+                    {% if zone.waf %}
+                      on
+                    {% else %}
+                      off
+                    {% endif %}
+                  </td>
+                {% endif %}
+                <td>
+                  <code>{{ zone.id }}</code>
+                </td>
+              </tr>
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+
+    </div>
+
+  </div>
+
+  <hr>
+
+  <footer>
+    <p>&copy; cfcli {{ 'now' | date('Y') }}</p>
+  </footer>
+</div> <!-- /container -->
+
+{% include 'includes/footer.html.twig' %}
