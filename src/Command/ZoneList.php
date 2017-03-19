@@ -263,7 +263,7 @@ class ZoneList extends Command {
   protected function writeHTMLReport(SymfonyStyle $io, array $variables = [], $filepath) {
     $loader = new \Twig_Loader_Filesystem(__DIR__ . '/../../templates');
     $twig = new \Twig_Environment($loader, array(
-      'cache' => sys_get_temp_dir() . '/cache',
+      'cache' => sys_get_temp_dir() . '/cfcli/cache',
       'auto_reload' => TRUE,
     ));
     $template = $twig->load('zonelist.html.twig');
