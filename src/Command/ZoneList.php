@@ -50,7 +50,7 @@ class ZoneList extends Command {
       ],
       'allow_redirects' => FALSE,
       'connect_timeout' => 5,
-      'timeout' => 5,
+      'timeout' => 10,
       'on_stats' => function(TransferStats $stats) use (&$url, &$time) {
         $url = $stats->getEffectiveUri();
         $time = $stats->getTransferTime();
