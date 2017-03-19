@@ -18,11 +18,13 @@ class ZoneList extends Command {
   protected $output = NULL;
   protected $start = NULL;
   protected $end = NULL;
+  protected $apiCalls = 0;
   protected $email;
   protected $key;
   protected $organizationFilter;
   protected $format;
   protected $wafCheck = FALSE;
+  protected $cdnCheck = FALSE;
 
   const API_BASE = 'https://api.cloudflare.com/client/v4/';
   const API_PER_PAGE = 1000;
@@ -55,6 +57,7 @@ class ZoneList extends Command {
       }
     ]);
     $response = $client->request('GET', $endpoint);
+    $this->apiCalls++;
 
     if ($response->getStatusCode() !== 200) {
       throw new \Exception('Error: ' . (string) $response->getBody());
@@ -128,6 +131,12 @@ class ZoneList extends Command {
         InputOption::VALUE_NONE,
         'If set, all zones will do an additional API lookup to see if the WAF is enabled or not.'
       )
+      ->addOption(
+        'cdn',
+        'c',
+        InputOption::VALUE_NONE,
+        'If set, all zones will do an additional API lookup to see if the CDN is enabled or not.'
+      )
     ;
   }
 
@@ -142,6 +151,7 @@ class ZoneList extends Command {
     $this->organizationFilter = $input->getOption('organization-filter');
     $this->format = $input->getOption('format');
     $this->wafCheck = $input->getOption('waf');
+    $this->cdnCheck = $input->getOption('cdn');
     $this->output = $output;
 
     $io = new SymfonyStyle($input, $output);
@@ -176,6 +186,28 @@ class ZoneList extends Command {
           $zone_details['waf'] = $waf_enabled === 'on';
         }
 
+        // Optional CDN check.
+        if ($this->cdnCheck) {
+          $zone_details['cdn'] = FALSE;
+          $pagerules = $this->apiRequest("zones/{$zone['id']}/pagerules?status=active&order=status&direction=desc&match=all")['result'];
+
+          // This logic seems overly complex.
+          foreach ($pagerules as $pagerule) {
+            if ($pagerule['targets'][0]['constraint']['value'] === '*' . $zone['name'] . '/*') {
+              foreach ($pagerule['actions'] as $action) {
+                if ($action['id'] === 'cache_level') {
+                  $zone_details['cdn'] = $action['value'];
+                }
+              }
+            }
+          }
+
+          if (!$zone_details['cdn']) {
+            $io->warning('Could not find a page rule for global caching on domain ' . $zone['name']);
+            $zone_details['cdn'] = 'not setup';
+          }
+        }
+
         $organization_zones[$zone['owner']['name']][] = $zone_details;
 
         // Increment counts.
@@ -189,11 +221,11 @@ class ZoneList extends Command {
         'organization count' => count($organization_zones),
         'zone counts' => $counts,
         'waf check' => $this->wafCheck,
+        'cdn check' => $this->cdnCheck,
       ],
       'zones' => $organization_zones,
     ];
 
-    // @TODO implement more output formats.
     switch ($this->format) {
       case 'json':
         $json = json_encode($variables, JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
@@ -215,7 +247,7 @@ class ZoneList extends Command {
     }
 
     $seconds = $this->timerEnd();
-    $io->text("Execution time: $seconds seconds.");
+    $io->text("Execution time: $seconds seconds, with $this->apiCalls API queries.");
   }
 
   /**

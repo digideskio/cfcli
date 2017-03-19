@@ -23,6 +23,9 @@
             <th>Organisation</th>
             <th>Domain</th>
             <th>Status</th>
+            {% if meta['cdn check'] %}
+              <th>CDN</th>
+            {% endif %}
             {% if meta['waf check'] %}
               <th>WAF</th>
             {% endif %}
@@ -42,6 +45,7 @@
                 <td>
                   {{ zone.domain }}
                 </td>
+
                 {% if zone.status == 'active' %}
                   {% set class = 'success' %}
                 {% else %}
@@ -50,6 +54,18 @@
                 <td class="{{ class }}">
                   {{ zone.status }}
                 </td>
+
+                {% if zone.cdn is defined %}
+                  {% if zone.cdn == 'bypass' or zone.cdn == 'not setup' %}
+                    {% set class = 'warning' %}
+                  {% else %}
+                    {% set class = 'success' %}
+                  {% endif %}
+                  <td class="{{ class }}">
+                    {{ zone.cdn | replace({'_' : ' '}) }}
+                  </td>
+                {% endif %}
+
                 {% if zone.waf is defined %}
                   {% if zone.waf %}
                     {% set class = 'success' %}
@@ -64,6 +80,7 @@
                     {% endif %}
                   </td>
                 {% endif %}
+
                 <td>
                   <code>{{ zone.id }}</code>
                 </td>

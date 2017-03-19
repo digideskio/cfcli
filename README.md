@@ -32,6 +32,10 @@ The `--format` option controls this.
 
 If you pass in the additional `--waf` argument, then an additional API request for every zone in the report will be done to check the current statue of the WAF. This will add approximately an additional second per zone to the total time to create the report.
 
+### Check CDN status
+
+If you pass in the additional `--cdn` argument, then an additional API request for every zone in the report will be done to check the current statue of the global caching page rules. This will add approximately an additional second per zone to the total time to create the report.
+
 ### Debug
 
 You can use the `-v` argument to log additional information such as the full URLs of the API requests, and the time taken for each one.
