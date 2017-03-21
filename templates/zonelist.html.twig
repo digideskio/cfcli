@@ -40,8 +40,29 @@
                   <th rowspan="{{ orgzones | length }}">
                     {{ org }}<br>
                     <small>{{ orgzones | length }} zone{% if orgzones | length > 1 %}s{% endif %}</small>
+                    {# Count the organisation zone CDN totals. #}
+                    {% if meta['cdn check'] %}
+                      {% set cdnCount = 0 %}
+                      {% for zone in orgzones %}
+                        {% if zone.cdn is defined and zone.cdn != 'bypass' and zone.cdn != 'not setup' %}
+                          {% set cdnCount = cdnCount + 1 %}
+                        {% endif %}
+                      {% endfor %}
+                      <br><small>CDN total: <span class="badge">{{ cdnCount }}</span></small>
+                    {% endif %}
+                    {# Count the organisation zone CDN totals. #}
+                    {% if meta['waf check'] %}
+                      {% set wafCount = 0 %}
+                      {% for zone in orgzones %}
+                        {% if zone.waf is defined and zone.waf %}
+                          {% set wafCount = wafCount + 1 %}
+                        {% endif %}
+                      {% endfor %}
+                      <br><small>WAF total: <span class="badge">{{ wafCount }}</span></small>
+                    {% endif %}
                   </th>
                 {% endif %}
+
                 <td>
                   {{ zone.domain }}
                 </td>
