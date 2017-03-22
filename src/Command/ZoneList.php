@@ -22,7 +22,7 @@ class ZoneList extends Command {
   protected $email;
   protected $key;
   protected $organizationFilter;
-  protected $format;
+  protected $format = [];
   protected $wafCheck = FALSE;
   protected $cdnCheck = FALSE;
 
@@ -49,8 +49,8 @@ class ZoneList extends Command {
         'Accept' => 'application/json',
       ],
       'allow_redirects' => FALSE,
-      'connect_timeout' => 5,
-      'timeout' => 10,
+      'connect_timeout' => 10,
+      'timeout' => 30,
       'on_stats' => function(TransferStats $stats) use (&$url, &$time) {
         $url = $stats->getEffectiveUri();
         $time = $stats->getTransferTime();
@@ -121,9 +121,9 @@ class ZoneList extends Command {
       ->addOption(
         'format',
         'f',
-        InputOption::VALUE_REQUIRED,
+        InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED,
         'Desired output format.',
-        'yaml'
+        ['yaml']
       )
       ->addOption(
         'waf',
@@ -247,24 +247,26 @@ class ZoneList extends Command {
     $variables['meta']['execution time'] = $seconds;
     $variables['meta']['api calls'] = $this->apiCalls;
 
-    switch ($this->format) {
-      case 'json':
-        $json = json_encode($variables, JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
-        file_put_contents('./reports/zone-list.json', $json);
-        $io->success('JSON file written to ./reports/zone-list.json');
-        break;
+    foreach ($this->format as $format) {
+      switch ($format) {
+        case 'json':
+          $json = json_encode($variables, JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+          file_put_contents('./reports/zone-list.json', $json);
+          $io->success('JSON file written to ./reports/zone-list.json');
+          break;
 
-      case 'html':
-        $this->writeHTMLReport($io, $variables, './reports/zone-list.html');
-        $io->success('HTML file written to ./reports/zone-list.html');
-        break;
+        case 'html':
+          $this->writeHTMLReport($io, $variables, './reports/zone-list.html');
+          $io->success('HTML file written to ./reports/zone-list.html');
+          break;
 
-      case 'yaml':
-      default:
-        $yaml = Yaml::dump($variables, 3);
-        file_put_contents('./reports/zone-list.yml', $yaml);
-        $io->success('YAML file written to ./reports/zone-list.yml');
-        break;
+        case 'yaml':
+        default:
+          $yaml = Yaml::dump($variables, 3);
+          file_put_contents('./reports/zone-list.yml', $yaml);
+          $io->success('YAML file written to ./reports/zone-list.yml');
+          break;
+      }
     }
   }
 

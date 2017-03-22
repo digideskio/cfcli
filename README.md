@@ -10,23 +10,23 @@ composer install
 
 ## How to run
 
-Here is an example that will list all zones that you have access to that begin with the letter 'J' (case insenstive).
+Here is an example that will list all zones that you have access to that begin with the letter 'J' (case insenstive), and will produce output in HTML and JSON format.
 
 ```
-./cfcli zone:list --email=${CF_EMAIL} --key=${CF_TOKEN} --organization-filter="^[jJ]" --format=html
+./cfcli zone:list --email=${CF_EMAIL} --key=${CF_TOKEN} --organization-filter="^[jJ]" --format=html --format=json
 ```
 
 The organisation filter accepts full regex syntax, allowing you to make very complex filters.
 
 ### Output formats
 
-The output format can be in either:
+The output format can be 1 or more of:
 
 * YAML (default)
 * JSON
 * HTML
 
-The `--format` option controls this.
+The `--format` option controls this, and can be used multiple times to get multiple output formats.
 
 ### Check WAF status
 
