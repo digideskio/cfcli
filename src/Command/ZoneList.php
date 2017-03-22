@@ -170,6 +170,8 @@ class ZoneList extends Command {
       'deleted' => 0,
       'deactivated read only' => 0,
     ];
+    $cdn_enabled_count = 0;
+    $waf_enabled_count = 0;
     foreach ($results['result'] as $zone) {
       if ($zone['owner']['type'] === 'organization' && preg_match('/' . $this->organizationFilter . '/', $zone['owner']['name'])) {
 
@@ -184,6 +186,9 @@ class ZoneList extends Command {
         if ($this->wafCheck) {
           $waf_enabled = $this->apiRequest("zones/{$zone['id']}/settings/waf")['result']['value'];
           $zone_details['waf'] = $waf_enabled === 'on';
+          if ($zone_details['waf']) {
+            $waf_enabled_count++;
+          }
         }
 
         // Optional CDN check.
@@ -197,6 +202,9 @@ class ZoneList extends Command {
               foreach ($pagerule['actions'] as $action) {
                 if ($action['id'] === 'cache_level') {
                   $zone_details['cdn'] = $action['value'];
+                  if ($zone_details['cdn'] === 'cache_everything') {
+                    $cdn_enabled_count++;
+                  }
                 }
               }
             }
@@ -226,6 +234,19 @@ class ZoneList extends Command {
       'zones' => $organization_zones,
     ];
 
+    if ($this->wafCheck) {
+      $variables['meta']['waf enabled count'] = $waf_enabled_count;
+    }
+
+    if ($this->cdnCheck) {
+      $variables['meta']['cdn enabled count'] = $cdn_enabled_count;
+    }
+
+    $seconds = $this->timerEnd();
+    $io->text("Execution time: $seconds seconds, with $this->apiCalls API queries.");
+    $variables['meta']['execution time'] = $seconds;
+    $variables['meta']['api calls'] = $this->apiCalls;
+
     switch ($this->format) {
       case 'json':
         $json = json_encode($variables, JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
@@ -245,9 +266,6 @@ class ZoneList extends Command {
         $io->success('YAML file written to ./reports/zone-list.yml');
         break;
     }
-
-    $seconds = $this->timerEnd();
-    $io->text("Execution time: $seconds seconds, with $this->apiCalls API queries.");
   }
 
   /**

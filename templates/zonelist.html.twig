@@ -4,8 +4,13 @@
 <div class="jumbotron">
   <div class="container">
     <h1>Cloudflare zone list report</h1>
-    <p>Report run across <strong>{{ meta['zone counts']['total'] }}</strong> zone{% if meta['zone counts']['total'] | length > 1 %}s{% endif %}, and <strong>{{ meta['organization count'] }}</strong> organisation{% if meta['organization count'] | length > 1 %}s{% endif %}.<br/>
-      {{ 'now' | date('Y-m-d h:i a (T)') }}
+    <p>Report run across <strong>{{ meta['zone counts']['total'] }}</strong> zone{% if meta['zone counts']['total'] > 1 %}s{% endif %}, and <strong>{{ meta['organization count'] }}</strong> organisation{% if meta['organization count'] > 1 %}s{% endif %}.<br>
+      {% if meta['cdn check'] %}
+        <strong>{{ meta['cdn enabled count'] }}</strong> zone{% if meta['cdn enabled count']['total'] != 1 %}s{% endif %} have CDN enabled{% if meta['waf check'] %}, and{% endif %}
+      {% endif %}
+      {% if meta['waf check'] %}
+        <strong>{{ meta['waf enabled count'] }}</strong> zone{% if meta['waf enabled count']['total'] != 1 %}s{% endif %} have WAF enabled.
+      {% endif %}
     </p>
   </div>
 </div>
@@ -140,7 +145,7 @@
   <hr>
 
   <footer>
-    <p>&copy; cfcli {{ 'now' | date('Y') }}</p>
+    <p>&copy; cfcli {{ 'now' | date('Y') }}. Report generated at {{ 'now' | date('Y-m-d h:i a (T)') }}, taking {{ meta['execution time'] }} second{% if meta['execution time'] != 1 %}s{% endif %}, and {{ meta['api calls'] }} API quer{% if meta['api calls']['total'] != 1 %}ies{% else %}y{% endif %}.</p>
   </footer>
 </div> <!-- /container -->
 
